@@ -1,0 +1,16 @@
+{
+  "name": "pboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A calm, free-form priority board for a shared office display.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "test": "node --check app.js && node --check server.mjs"
+  }
+}

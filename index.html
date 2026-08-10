@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#171a18" />
+    <title>Priority Board</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar" aria-label="Board controls">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div>
+            <p class="eyebrow">Lab display</p>
+            <h1>Priority board</h1>
+          </div>
+        </div>
+
+        <div class="topbar-center" aria-live="polite">
+          <span class="today-label" id="todayLabel"></span>
+          <span class="dot-separator">·</span>
+          <span class="clock" id="clock"></span>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="button button-quiet" id="presentButton" type="button" title="Hide the controls (P)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H4zM8 20l4-4 4 4" /></svg>
+            <span>Present</span>
+          </button>
+          <button class="button button-primary" id="addButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            <span>New note</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="board" id="board" aria-label="Free-form priority board">
+        <div class="board-grain" aria-hidden="true"></div>
+        <div class="empty-state" id="emptyState" hidden>
+          <div class="empty-illustration" aria-hidden="true"><span>+</span></div>
+          <h2>A little room to think</h2>
+          <p>Add a note, write what matters, and put it where it belongs.</p>
+          <button class="text-button" id="emptyAddButton" type="button">Create the first note</button>
+        </div>
+        <div class="notes-layer" id="notesLayer"></div>
+      </section>
+
+      <aside class="inspector" id="inspector" aria-label="Selected note settings" aria-hidden="true">
+        <div class="inspector-group color-group" aria-label="Note color">
+          <button class="swatch is-selected" type="button" data-color="butter" aria-label="Butter"></button>
+          <button class="swatch" type="button" data-color="coral" aria-label="Coral"></button>
+          <button class="swatch" type="button" data-color="sky" aria-label="Sky"></button>
+          <button class="swatch" type="button" data-color="mint" aria-label="Mint"></button>
+          <button class="swatch" type="button" data-color="lilac" aria-label="Lilac"></button>
+          <button class="swatch" type="button" data-color="paper" aria-label="Paper"></button>
+        </div>
+        <span class="inspector-divider"></span>
+        <label class="select-wrap" title="Typeface">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18L10.2 5h3.6L19 18M7 14h10" /></svg>
+          <select id="fontSelect" aria-label="Typeface">
+            <option value="sans">Sans</option>
+            <option value="rounded">Rounded</option>
+            <option value="serif">Serif</option>
+            <option value="mono">Mono</option>
+          </select>
+        </label>
+        <label class="select-wrap" title="Text size">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V5h16v2M12 5v14M9 19h6" /></svg>
+          <select id="fontSizeSelect" aria-label="Text size">
+            <option value="18">S</option>
+            <option value="24">M</option>
+            <option value="32">L</option>
+            <option value="42">XL</option>
+          </select>
+        </label>
+        <label class="date-control" title="Optional date">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" /></svg>
+          <input id="dateInput" type="date" aria-label="Optional date" />
+        </label>
+        <span class="inspector-divider"></span>
+        <button class="icon-button danger-button" id="deleteButton" type="button" title="Delete note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></svg>
+          <span class="sr-only">Delete selected note</span>
+        </button>
+      </aside>
+
+      <div class="board-status" id="boardStatus" aria-live="polite">
+        <span class="save-dot"></span>
+        <span>Saved on this display</span>
+      </div>
+
+      <div class="present-hint" id="presentHint">Press <kbd>P</kbd> to bring controls back</div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

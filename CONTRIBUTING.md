@@ -27,6 +27,8 @@ For a larger change, open an issue first so the interaction and scope can be dis
 - `index.html` contains the application shell and controls.
 - `styles.css` contains the full visual system and responsive layout.
 - `app.js` contains note state, interactions, and local persistence.
+- `linear.mjs` contains the server-side Linear client, cache, and issue selection rules.
+- `linear.test.mjs` covers authentication configuration and feed filtering.
 - `server.mjs` is the dependency-free development/static server.
 
 By contributing, you agree that your contribution will be licensed under the MIT License.

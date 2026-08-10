@@ -11,6 +11,7 @@ A dark, free-form sticky-note board for the things a team needs to keep in view 
 - Choose from six colors, four typefaces, and four text sizes.
 - Add optional dates with clear due-soon and overdue labels.
 - Hide the controls with presentation mode for an always-on display.
+- Pull a focused, read-only feed from Linear without exposing credentials to the browser.
 - Save automatically in the browser—no account or backend required.
 - Use it with a mouse, touchscreen, or keyboard.
 
@@ -37,6 +38,8 @@ The server listens on the local network by default. Other devices can open `http
 - Press `Delete` or `Backspace` with a card selected to remove it.
 - Press `P` for presentation mode; press `P` or `Escape` to exit.
 - Press `Ctrl+Enter` or `Cmd+Enter` to create a note quickly.
+- Click **Linear** to configure, refresh, filter, or restore hidden issue cards.
+- Use **Hide cards** / **Show cards** in the top bar to temporarily toggle the entire Linear layer.
 
 ## Where the data lives
 
@@ -46,9 +49,36 @@ There is currently no synchronization or automatic backup. Clearing the site's b
 
 ## Linear integration
 
-The core board is deliberately local and frictionless. A useful Linear integration should be a small, opinionated layer rather than turning this into a second issue tracker.
+Linear is an optional, one-way feed. Manual notes remain local and editable; Linear cards get their title, status, priority, assignee, and due date from Linear. You can still move, resize, recolor, or hide those cards on this display. Clicking the arrow on a card opens the source issue.
 
-The likely next step is a one-way **Due soon** feed: select a Linear team or project, pull incomplete issues due in the next 7–14 days, and show them as visually distinct, read-only cards. Manually created notes would remain free-form. A small backend would keep the Linear API key out of the TV browser and periodically refresh the feed.
+### Connect a workspace
+
+1. Create a personal API key in [Linear's security settings](https://linear.app/settings/account/security).
+2. Copy the example configuration:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Add the key to `.env`:
+
+   ```dotenv
+   LINEAR_API_KEY=lin_api_your_key_here
+   ```
+
+4. Restart `npm start`, click **Linear**, and select a team, optional project, due window, issue filter, and card limit.
+
+The key is read only by `server.mjs`; it is never returned by an API endpoint or written to browser storage. `.env` is ignored by Git. OAuth access tokens are also supported through `LINEAR_ACCESS_TOKEN` and take precedence when both values are present.
+
+### What gets displayed
+
+The default **Due soon + active priority** filter includes incomplete issues that are overdue or due within the selected window. It also includes urgent and high-priority issues already in a started workflow state, even when they have no due date.
+
+Choose **Only issues with due dates** to exclude every issue without a due date; the selected due window still applies. Overdue work is sorted first and the result is capped at the selected card limit.
+
+The browser refreshes on startup and every ten minutes while visible. The server caches issue results for five minutes and team/project choices for ten minutes. The last successful issue response is kept in browser storage so a temporary Linear outage does not clear the display.
+
+This first version is deliberately read-only. Editing an issue still happens in Linear.
 
 ## Contributing
 

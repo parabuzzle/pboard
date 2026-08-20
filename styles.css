@@ -841,6 +841,11 @@ h1 {
   background: #a78239;
 }
 
+.board-status.is-offline .save-dot {
+  background: #c26744;
+  box-shadow: 0 0 0 3px rgba(194, 103, 68, 0.14);
+}
+
 @keyframes pulse {
   to { opacity: 0.4; }
 }

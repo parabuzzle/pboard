@@ -26,9 +26,11 @@ For a larger change, open an issue first so the interaction and scope can be dis
 
 - `index.html` contains the application shell and controls.
 - `styles.css` contains the full visual system and responsive layout.
-- `app.js` contains note state, interactions, and local persistence.
+- `app.js` contains note state, interactions, and synchronization with the board server.
+- `board-store.mjs` contains the server-side board state, validation, and JSON-file persistence.
+- `board-store.test.mjs` covers board state validation and persistence.
 - `linear.mjs` contains the server-side Linear client, cache, and issue selection rules.
 - `linear.test.mjs` covers authentication configuration and feed filtering.
-- `server.mjs` is the dependency-free development/static server.
+- `server.mjs` is the dependency-free server: static files, the board API and event stream, and the Linear proxy.
 
 By contributing, you agree that your contribution will be licensed under the MIT License.

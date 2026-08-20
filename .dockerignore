@@ -1,0 +1,13 @@
+.git
+node_modules
+data
+docs
+.env
+.env.*
+*.log
+*.test.mjs
+Dockerfile
+docker-compose.yml
+.dockerignore
+.idea
+.vscode

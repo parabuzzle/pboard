@@ -1,0 +1,15 @@
+services:
+  pboard:
+    build: .
+    ports:
+      - "4173:4173"
+    environment:
+      # Both values are read from an optional .env file next to this compose file.
+      LINEAR_API_KEY: ${LINEAR_API_KEY:-}
+      LINEAR_ACCESS_TOKEN: ${LINEAR_ACCESS_TOKEN:-}
+    volumes:
+      - pboard-data:/data
+    restart: unless-stopped
+
+volumes:
+  pboard-data:

@@ -32,5 +32,6 @@ For a larger change, open an issue first so the interaction and scope can be dis
 - `linear.mjs` contains the server-side Linear client, cache, and issue selection rules.
 - `linear.test.mjs` covers authentication configuration and feed filtering.
 - `server.mjs` is the dependency-free server: static files, the board API and event stream, and the Linear proxy.
+- `Dockerfile` and `docker-compose.yml` package the server for container deployment.
 
 By contributing, you agree that your contribution will be licensed under the MIT License.

@@ -30,6 +30,27 @@ Open [http://localhost:4173](http://localhost:4173).
 
 The server listens on the local network by default. Other devices can open `http://<display-computer-ip>:4173` while the server is running and the computer's firewall permits it. Every device shows the same board, and edits appear on the other screens within a moment.
 
+### Run with Docker
+
+The repository includes a `Dockerfile` and a compose file for running the board on a server. Board data lives on a named volume, so the container can be rebuilt or upgraded without losing the board.
+
+```bash
+docker compose up -d --build
+```
+
+Open [http://localhost:4173](http://localhost:4173). To connect Linear, put `LINEAR_API_KEY=…` in a `.env` file next to `docker-compose.yml`; compose passes the value into the container, and the file itself is never copied into the image.
+
+Without compose:
+
+```bash
+docker build -t pboard .
+docker run -d --name pboard -p 4173:4173 -v pboard-data:/data \
+  -e LINEAR_API_KEY=lin_api_your_key_here \
+  --restart unless-stopped pboard
+```
+
+Inside the container the board is stored at `/data/board.json`, the server runs as the unprivileged `node` user, and a built-in health check reports the container as healthy once the board API responds. Back up the board with `docker cp pboard:/data/board.json .` or by snapshotting the `pboard-data` volume.
+
 ## Controls
 
 - Click **New note** and type directly on the card.

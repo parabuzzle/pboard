@@ -11,6 +11,6 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node server.mjs",
-    "test": "node --check app.js && node --check server.mjs && node --test linear.test.mjs"
+    "test": "node --check app.js && node --check server.mjs && node --check board-store.mjs && node --test linear.test.mjs board-store.test.mjs"
   }
 }

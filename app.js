@@ -2,6 +2,8 @@ const NOTES_STORAGE_KEY = "pboard.notes.v1";
 const LINEAR_SETTINGS_KEY = "pboard.linear.settings.v1";
 const LINEAR_LAYOUTS_KEY = "pboard.linear.layouts.v1";
 const LINEAR_CACHE_KEY = "pboard.linear.cache.v1";
+const BOARD_ENDPOINT = "/api/board";
+const BOARD_EVENTS_ENDPOINT = "/api/board/events";
 
 const appShell = document.querySelector(".app-shell");
 const board = document.querySelector("#board");
@@ -62,6 +64,14 @@ let highestZ = [
 let interaction = null;
 let saveTimer = null;
 let toastTimer = null;
+
+const clientId = crypto.randomUUID?.() ?? uid();
+let serverRev = 0;
+let boardDirty = false;
+let pushInFlight = false;
+let pushQueued = false;
+let boardStream = null;
+let syncState = "connecting";
 
 function uid() {
   return `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -207,8 +217,7 @@ function loadObject(key) {
   }
 }
 
-function loadLinearSettings() {
-  const saved = loadObject(LINEAR_SETTINGS_KEY);
+function sanitizeLinearSettings(saved = {}) {
   return {
     teamId: typeof saved.teamId === "string" ? saved.teamId : "",
     projectId: typeof saved.projectId === "string" ? saved.projectId : "",
@@ -219,21 +228,157 @@ function loadLinearSettings() {
   };
 }
 
-function writeBoardState() {
+function loadLinearSettings() {
+  return sanitizeLinearSettings(loadObject(LINEAR_SETTINGS_KEY));
+}
+
+function writeLocalCache() {
   localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
   localStorage.setItem(LINEAR_LAYOUTS_KEY, JSON.stringify(linearLayouts));
   localStorage.setItem(LINEAR_SETTINGS_KEY, JSON.stringify(linearSettings));
 }
 
+function boardStatePayload() {
+  return { notes, linearLayouts, linearSettings };
+}
+
 function saveBoardState() {
-  boardStatus.classList.add("is-saving");
-  boardStatus.querySelector("span:last-child").textContent = "Saving…";
+  boardDirty = true;
+  setSyncStatus("saving");
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    writeBoardState();
-    boardStatus.classList.remove("is-saving");
-    boardStatus.querySelector("span:last-child").textContent = "Saved on this display";
+    saveTimer = null;
+    writeLocalCache();
+    pushBoardState();
   }, 180);
+}
+
+async function pushBoardState() {
+  if (pushInFlight) {
+    pushQueued = true;
+    return;
+  }
+  pushInFlight = true;
+  try {
+    do {
+      pushQueued = false;
+      const response = await fetch(BOARD_ENDPOINT, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: boardStatePayload(), clientId }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      serverRev = Number(payload.rev) || serverRev;
+    } while (pushQueued);
+    boardDirty = false;
+    setSyncStatus("synced");
+  } catch {
+    setSyncStatus("offline");
+  } finally {
+    pushInFlight = false;
+  }
+}
+
+function setSyncStatus(state) {
+  syncState = state;
+  const labels = {
+    connecting: "Connecting…",
+    saving: "Saving…",
+    synced: "Synced across displays",
+    offline: "Offline — saved in this browser",
+  };
+  boardStatus.classList.toggle("is-saving", state === "saving" || state === "connecting");
+  boardStatus.classList.toggle("is-offline", state === "offline");
+  boardStatus.querySelector("span:last-child").textContent = labels[state] ?? labels.connecting;
+}
+
+function applyBoardState(state) {
+  notes = Array.isArray(state?.notes)
+    ? state.notes.filter((note) => note && typeof note === "object").map(sanitizeNote)
+    : [];
+  const layouts = {};
+  if (state?.linearLayouts && typeof state.linearLayouts === "object" && !Array.isArray(state.linearLayouts)) {
+    for (const [issueId, layout] of Object.entries(state.linearLayouts)) {
+      if (layout && typeof layout === "object") layouts[issueId] = sanitizeLinearLayout(layout);
+    }
+  }
+  linearLayouts = layouts;
+  linearSettings = sanitizeLinearSettings(state?.linearSettings ?? {});
+  highestZ = [
+    ...notes.map((note) => note.z ?? 1),
+    ...Object.values(linearLayouts).map((layout) => layout.z ?? 1),
+  ].reduce((max, z) => Math.max(max, z), 1);
+  if (selectedId && !selectedItem(selectedId)) selectedId = null;
+  writeLocalCache();
+  render();
+}
+
+async function initializeBoard() {
+  try {
+    const payload = await requestJSON(BOARD_ENDPOINT);
+    serverRev = Number(payload.rev) || 0;
+    if (payload.state) {
+      applyBoardState(payload.state);
+      setSyncStatus("synced");
+    } else {
+      // First run against an empty server: publish this browser's board.
+      boardDirty = true;
+      writeLocalCache();
+      await pushBoardState();
+    }
+  } catch {
+    setSyncStatus("offline");
+  }
+  connectBoardStream();
+}
+
+function connectBoardStream() {
+  boardStream?.close();
+  boardStream = new EventSource(BOARD_EVENTS_ENDPOINT);
+  boardStream.addEventListener("open", () => {
+    if (syncState === "offline" || syncState === "connecting") {
+      setSyncStatus(boardDirty ? "saving" : "synced");
+    }
+    if (boardDirty && !pushInFlight) pushBoardState();
+  });
+  boardStream.addEventListener("board", (event) => {
+    let payload;
+    try {
+      payload = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+    handleBoardEvent(payload);
+  });
+  boardStream.addEventListener("error", () => {
+    if (boardStream.readyState !== EventSource.CLOSED) setSyncStatus("offline");
+  });
+}
+
+function handleBoardEvent(payload) {
+  const rev = Number(payload.rev) || 0;
+  if (payload.source === clientId) {
+    serverRev = Math.max(serverRev, rev);
+    return;
+  }
+  if (!payload.state) {
+    // The server has no board (fresh instance or lost data file); ours is the backup.
+    if (notes.length || Object.keys(linearLayouts).length) {
+      boardDirty = true;
+      pushBoardState();
+    }
+    return;
+  }
+  if (!payload.initial && rev <= serverRev) return;
+  if (boardDirty || saveTimer || pushInFlight || interaction) return;
+  serverRev = Math.max(serverRev, rev);
+  const previousSettings = JSON.stringify(linearSettings);
+  applyBoardState(payload.state);
+  if (JSON.stringify(linearSettings) !== previousSettings && linearConfigured && linearSettings.teamId) {
+    syncLinear(false, false);
+  }
+  if (syncState !== "saving") setSyncStatus("synced");
 }
 
 function render() {
@@ -1032,12 +1177,29 @@ window.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("resize", render);
-window.addEventListener("beforeunload", writeBoardState);
+window.addEventListener("beforeunload", () => {
+  const pending = boardDirty || saveTimer !== null;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  writeLocalCache();
+  if (!pending) return;
+  try {
+    fetch(BOARD_ENDPOINT, {
+      method: "PUT",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: boardStatePayload(), clientId }),
+    });
+  } catch {
+    // The local cache above still holds the latest state.
+  }
+});
 
 updateTime();
 setInterval(updateTime, 15000);
 setInterval(() => {
   if (linearConfigured && linearSettings.teamId && !document.hidden) syncLinear(false, false);
 }, 10 * 60 * 1000);
+setSyncStatus("connecting");
 render();
-initializeLinear();
+initializeBoard().then(() => initializeLinear());

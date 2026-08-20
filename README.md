@@ -12,7 +12,8 @@ A dark, free-form sticky-note board for the things a team needs to keep in view 
 - Add optional dates with clear due-soon and overdue labels.
 - Hide the controls with presentation mode for an always-on display.
 - Pull a focused, read-only feed from Linear without exposing credentials to the browser.
-- Save automatically in the browser—no account or backend required.
+- Save automatically to the board server, so every browser and display shows the same board.
+- See edits from other computers appear live—no refresh needed.
 - Use it with a mouse, touchscreen, or keyboard.
 
 ## Quick start
@@ -27,7 +28,7 @@ npm start
 
 Open [http://localhost:4173](http://localhost:4173).
 
-The server listens on the local network by default. Other devices can open `http://<display-computer-ip>:4173` while the server is running and the computer's firewall permits it.
+The server listens on the local network by default. Other devices can open `http://<display-computer-ip>:4173` while the server is running and the computer's firewall permits it. Every device shows the same board, and edits appear on the other screens within a moment.
 
 ## Controls
 
@@ -43,9 +44,11 @@ The server listens on the local network by default. Other devices can open `http
 
 ## Where the data lives
 
-Notes are stored in the display browser's `localStorage` under the key `pboard.notes.v1`. They persist through refreshes and browser restarts, but they are tied to that browser profile and site address.
+The board—notes, card positions, and Linear feed settings—is stored by the server in a single JSON file, `data/board.json` by default (change it with `BOARD_DATA_FILE` in `.env`). Every browser that opens the board reads and writes that shared copy, and the server pushes each change to all connected browsers over a server-sent-events stream, so edits appear everywhere within a moment. Backing up the board is copying one file.
 
-There is currently no synchronization or automatic backup. Clearing the site's browser data erases the board.
+Each browser also keeps the latest board in `localStorage` as an offline fallback. If the server is unreachable, the status chip in the corner shows **Offline — saved in this browser**, and pending changes are pushed when the connection returns. A browser that already has a board from an older version of Priority Board publishes it to the server the first time it connects.
+
+Concurrent edits are resolved as last-write-wins for the whole board: if two people edit at the same moment, the most recent save is the one that everyone sees. For a shared display with occasional edits this is rarely noticeable, but it is not a collaborative editor.
 
 ## Linear integration
 
